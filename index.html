@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, height=device-height">
+    <title>CV by Santanu</title>
+    
+    <!-- LIBRARIES -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- HTML2PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        .touch-scroll { -webkit-overflow-scrolling: touch; overflow-y: auto; overscroll-behavior-y: contain; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        
+        .btn-press:active { transform: scale(0.97); opacity: 0.9; }
+
+        @keyframes shine-santanu {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .shiny-text {
+            background: linear-gradient(90deg, #2563eb, #06b6d4, #8b5cf6, #db2777, #2563eb);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: shine-santanu 3s linear infinite;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        @media print {
+            @page { margin: 0; size: auto; }
+            body { background: white; }
+            nav, .step-bar, .bottom-bar, .fab-btn, .no-print { display: none !important; }
+            #root { height: auto; overflow: visible; }
+            #resume-preview-container { 
+                position: absolute; top: 0; left: 0; width: 100%; height: auto; 
+                z-index: 9999; background: white; overflow: visible; display: block !important;
+            }
+            #resume-preview { 
+                transform: none !important; width: 100% !important; box-shadow: none !important; margin: 0 !important; 
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 h-[100dvh] w-full overflow-hidden fixed">
+
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const Icon = ({ path, size = 20, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ minWidth: size, minHeight: size }}>{path}</svg>
+        );
+
+        const icons = {
+            user: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+            file: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></>,
+            briefcase: <><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>,
+            grad: <><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></>,
+            code: <><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>,
+            layers: <><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0l8.57-3.908a1 1 0 0 0 0-1.832z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></>,
+            award: <><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></>,
+            users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+            magic: <><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/></>,
+            plus: <><path d="M5 12h14"/><path d="M12 5v14"/></>,
+            trash: <><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>,
+            eye: <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></>,
+            x: <><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>,
+            download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>,
+            left: <><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></>,
+            right: <><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>,
+            loader: <><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></>
+        };
+
+        const STEPS = [
+            { id: 'personal', title: 'Personal', icon: icons.user },
+            { id: 'summary', title: 'Summary', icon: icons.file },
+            { id: 'experience', title: 'Experience', icon: icons.briefcase },
+            { id: 'education', title: 'Education', icon: icons.grad },
+            { id: 'projects', title: 'Projects', icon: icons.code },
+            { id: 'skills', title: 'Skills', icon: icons.layers },
+            { id: 'extras', title: 'Extras', icon: icons.award },
+            { id: 'references', title: 'Refs', icon: icons.users },
+        ];
+
+        // --- COMPONENTS ---
+        const Button = ({ onClick, children, variant = 'primary', className = '', icon = null, iconPosition = 'left', disabled = false, isLoading = false }) => {
+            const base = "h-12 px-6 rounded-xl font-semibold flex items-center justify-center gap-3 btn-press select-none min-w-[130px]";
+            const vars = {
+                primary: "bg-blue-600 text-white shadow-lg shadow-blue-200 active:bg-blue-700",
+                secondary: "bg-white text-slate-600 border border-slate-200 active:bg-slate-50",
+                magic: "bg-slate-900 text-white shadow-lg shadow-indigo-200 border border-slate-700"
+            };
+            const iconClass = `shrink-0 ${isLoading ? 'animate-spin' : ''}`;
+            return (
+                <button onClick={onClick} disabled={disabled || isLoading} className={`${base} ${vars[variant]} ${(disabled || isLoading)?'opacity-50 pointer-events-none':''} ${className}`}>
+                    {icon && iconPosition === 'left' && <span className={iconClass}>{icon}</span>}
+                    <span className="whitespace-nowrap">{children}</span>
+                    {icon && iconPosition === 'right' && <span className={iconClass}>{icon}</span>}
+                </button>
+            );
+        };
+
+        const AddCard = ({ onClick, label }) => (
+            <button onClick={onClick} className="w-full h-14 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-semibold flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-blue-400 hover:text-blue-500 transition-all btn-press mb-6">
+                <div className="bg-slate-100 p-1 rounded-full flex items-center justify-center"><Icon path={icons.plus} size={16} /></div>{label}
+            </button>
+        );
+
+        const Input = ({ label, value, onChange, placeholder, type = "text" }) => (
+            <div className="flex flex-col gap-1.5 mb-4">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide ml-1">{label}</label>
+                <input type={type} value={value || ''} onChange={onChange} placeholder={placeholder} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-300" />
+            </div>
+        );
+
+        const TextArea = ({ label, value, onChange, placeholder, rows = 4 }) => (
+            <div className="flex flex-col gap-1.5 mb-4">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide ml-1">{label}</label>
+                <textarea value={value || ''} onChange={onChange} placeholder={placeholder} rows={rows} className="w-full p-4 bg-white border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none placeholder:text-slate-300" />
+            </div>
+        );
+
+        function UltraResumeAI() {
+            const [data, setData] = useState({
+                personal: { fullName: '', jobTitle: '', email: '', phone: '', altPhone: '', address: '', city: '', zip: '', country: '', linkedin: '', github: '', portfolio: '', photo: null, dob: '', gender: '', nationality: '', maritalStatus: '' },
+                summary: '', experience: [], education: [], projects: [], skills: { technical: '', soft: '', languages: '' }, certifications: [], extras: { hobbies: '', volunteering: '', declaration: '', date: '', place: '' }, references: []
+            });
+            const [activeStep, setActiveStep] = useState(0);
+            const [showPreview, setShowPreview] = useState(false);
+            const [isAiLoading, setIsAiLoading] = useState(false);
+            const [isSaving, setIsSaving] = useState(false);
+            const [theme, setTheme] = useState({ template: 'modern', color: '#2563eb' });
+            const scrollRef = useRef(null);
+
+            useEffect(() => { if(scrollRef.current) scrollRef.current.scrollTop = 0; }, [activeStep]);
+
+            const updateData = (sec, f, v) => setData(p => ({...p, [sec]: {...p[sec], [f]: v}}));
+            const updateList = (sec, i, f, v) => { const l = [...data[sec]]; l[i] = {...l[i], [f]: v}; setData(p => ({...p, [sec]: l})); };
+            const addList = (sec, item) => setData(p => ({...p, [sec]: [...p[sec], item]}));
+            const remList = (sec, i) => setData(p => ({...p, [sec]: p[sec].filter((_,x) => x !== i)}));
+            const handlePhoto = (e) => { const f = e.target.files[0]; if(f){ const r=new FileReader(); r.onload=()=>updateData('personal','photo',r.result); r.readAsDataURL(f); }};
+
+            const activateAI = () => {
+                setIsAiLoading(true);
+                setTimeout(() => {
+                    const t = ['modern', 'executive', 'creative', 'minimal'];
+                    const c = ['#334155', '#2563eb', '#7c3aed', '#059669', '#e11d48'];
+                    setTheme({ template: t[Math.floor(Math.random()*t.length)], color: c[Math.floor(Math.random()*c.length)] });
+                    setIsAiLoading(false);
+                }, 600);
+            };
+
+            const savePDF = () => {
+                setIsSaving(true);
+                setTimeout(() => {
+                    const element = document.getElementById('resume-preview');
+                    const opt = { margin: 0, filename: `${data.personal.fullName.replace(/\s+/g, '_') || 'Resume'}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                    const forcePrint = () => { setIsSaving(false); window.print(); };
+                    try {
+                        if (window.html2pdf) {
+                            const clone = element.cloneNode(true);
+                            Object.assign(clone.style, { position: 'fixed', top: '0', left: '0', width: '210mm', minHeight: '297mm', zIndex: '-10', visibility: 'visible', background: 'white' });
+                            document.body.appendChild(clone);
+                            window.html2pdf().set(opt).from(clone).save().then(() => { document.body.removeChild(clone); setIsSaving(false); }).catch(err => { console.error(err); if(document.body.contains(clone)) document.body.removeChild(clone); forcePrint(); });
+                        } else { forcePrint(); }
+                    } catch (e) { forcePrint(); }
+                }, 100);
+            };
+
+            const renderStep = () => {
+                const s = STEPS[activeStep].id;
+                if(s === 'personal') return (
+                    <div className="animate-fade-in">
+                        <div className="flex justify-center mb-6">
+                            <div className="w-24 h-24 bg-slate-100 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center relative overflow-hidden group">
+                                {data.personal.photo ? <img src={data.personal.photo} className="w-full h-full object-cover"/> : <div className="text-slate-400 flex flex-col items-center"><Icon path={icons.user} size={24} /><span className="text-[9px] font-bold mt-1">PHOTO</span></div>}
+                                <input type="file" className="absolute inset-0 opacity-0 z-10" onChange={handlePhoto} />
+                                {data.personal.photo && <button onClick={(e)=>{e.preventDefault();updateData('personal','photo',null)}} className="absolute inset-0 bg-black/50 text-white text-xs font-bold z-20 opacity-0 group-hover:opacity-100 flex items-center justify-center">REMOVE</button>}
+                            </div>
+                        </div>
+                        <Input label="Full Name" value={data.personal.fullName} onChange={e=>updateData('personal','fullName',e.target.value)} />
+                        <Input label="Job Title" value={data.personal.jobTitle} onChange={e=>updateData('personal','jobTitle',e.target.value)} />
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="Email" value={data.personal.email} onChange={e=>updateData('personal','email',e.target.value)} type="email" />
+                            <Input label="Phone" value={data.personal.phone} onChange={e=>updateData('personal','phone',e.target.value)} type="tel" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="Alt Phone" value={data.personal.altPhone} onChange={e=>updateData('personal','altPhone',e.target.value)} type="tel" />
+                            <Input label="DOB" value={data.personal.dob} onChange={e=>updateData('personal','dob',e.target.value)} type="date" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="Gender" value={data.personal.gender} onChange={e=>updateData('personal','gender',e.target.value)} placeholder="Male/Female" />
+                            <Input label="Marital Status" value={data.personal.maritalStatus} onChange={e=>updateData('personal','maritalStatus',e.target.value)} />
+                        </div>
+                        <Input label="Nationality" value={data.personal.nationality} onChange={e=>updateData('personal','nationality',e.target.value)} />
+                        <Input label="Address" value={data.personal.address} onChange={e=>updateData('personal','address',e.target.value)} />
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="City" value={data.personal.city} onChange={e=>updateData('personal','city',e.target.value)} />
+                            <Input label="Zip Code" value={data.personal.zip} onChange={e=>updateData('personal','zip',e.target.value)} />
+                        </div>
+                        <Input label="Country" value={data.personal.country} onChange={e=>updateData('personal','country',e.target.value)} />
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="LinkedIn" value={data.personal.linkedin} onChange={e=>updateData('personal','linkedin',e.target.value)} placeholder="User ID" />
+                            <Input label="GitHub" value={data.personal.github} onChange={e=>updateData('personal','github',e.target.value)} placeholder="User ID" />
+                        </div>
+                        <Input label="Portfolio" value={data.personal.portfolio} onChange={e=>updateData('personal','portfolio',e.target.value)} />
+                    </div>
+                );
+                if(s === 'experience') return (<div>{data.experience.map((exp, i) => (<div key={i} className="bg-white p-4 pt-12 rounded-xl border border-slate-200 shadow-sm mb-4 relative"><button onClick={()=>remList('experience', i)} className="absolute top-2 right-2 text-white bg-red-400 hover:bg-red-500 p-1.5 rounded-full z-10 btn-press border border-red-100"><Icon path={icons.trash} size={14}/></button><Input label="Role" value={exp.title} onChange={e=>updateList('experience',i,'title',e.target.value)} /><Input label="Company" value={exp.company} onChange={e=>updateList('experience',i,'company',e.target.value)} /><Input label="Location" value={exp.location} onChange={e=>updateList('experience',i,'location',e.target.value)} placeholder="City, Country" /><div className="grid grid-cols-2 gap-3"><Input label="Start" value={exp.start} onChange={e=>updateList('experience',i,'start',e.target.value)} /><Input label="End" value={exp.end} onChange={e=>updateList('experience',i,'end',e.target.value)} /></div><TextArea label="Details" value={exp.desc} onChange={e=>updateList('experience',i,'desc',e.target.value)} rows={3} /></div>))}<AddCard onClick={()=>addList('experience', {title:'', company:'', location:'', start:'', end:'', desc:''})} label="Add Experience" /></div>);
+                if(s === 'education') return (<div>{data.education.map((edu, i) => (<div key={i} className="bg-white p-4 pt-12 rounded-xl border border-slate-200 shadow-sm mb-4 relative"><button onClick={()=>remList('education', i)} className="absolute top-2 right-2 text-white bg-red-400 hover:bg-red-500 p-1.5 rounded-full z-10 btn-press border border-red-100"><Icon path={icons.trash} size={14}/></button><Input label="Degree" value={edu.degree} onChange={e=>updateList('education',i,'degree',e.target.value)} /><Input label="Stream" value={edu.stream} onChange={e=>updateList('education',i,'stream',e.target.value)} placeholder="CS, Commerce..." /><Input label="College" value={edu.school} onChange={e=>updateList('education',i,'school',e.target.value)} /><Input label="Board/Univ" value={edu.board} onChange={e=>updateList('education',i,'board',e.target.value)} /><div className="grid grid-cols-2 gap-3"><Input label="Year" value={edu.year} onChange={e=>updateList('education',i,'year',e.target.value)} /><Input label="Grade" value={edu.grade} onChange={e=>updateList('education',i,'grade',e.target.value)} /></div></div>))}<AddCard onClick={()=>addList('education', {degree:'', stream:'', school:'', board:'', year:'', grade:''})} label="Add Education" /></div>);
+                if(s === 'projects') return (<div>{data.projects.map((proj, i) => (<div key={i} className="bg-white p-4 pt-12 rounded-xl border border-slate-200 shadow-sm mb-4 relative"><button onClick={()=>remList('projects', i)} className="absolute top-2 right-2 text-white bg-red-400 hover:bg-red-500 p-1.5 rounded-full z-10 btn-press border border-red-100"><Icon path={icons.trash} size={14}/></button><Input label="Title" value={proj.name} onChange={e=>updateList('projects',i,'name',e.target.value)} /><Input label="Tech Stack" value={proj.tech} onChange={e=>updateList('projects',i,'tech',e.target.value)} placeholder="React, Node..." /><div className="grid grid-cols-2 gap-3"><Input label="Live Link" value={proj.link} onChange={e=>updateList('projects',i,'link',e.target.value)} /><Input label="Repo Link" value={proj.repo} onChange={e=>updateList('projects',i,'repo',e.target.value)} /></div><TextArea label="Description" value={proj.desc} onChange={e=>updateList('projects',i,'desc',e.target.value)} rows={3} /></div>))}<AddCard onClick={()=>addList('projects', {name:'', tech:'', link:'', repo:'', desc:''})} label="Add Project" /></div>);
+                if(s === 'skills') return (<div className="space-y-4"><TextArea label="Technical Skills" value={data.skills.technical} onChange={e=>setData(p=>({...p, skills:{...p.skills, technical:e.target.value}}))} placeholder="Java, Python..." /><TextArea label="Soft Skills" value={data.skills.soft} onChange={e=>setData(p=>({...p, skills:{...p.skills, soft:e.target.value}}))} placeholder="Teamwork..." /><TextArea label="Languages" value={data.skills.languages} onChange={e=>setData(p=>({...p, skills:{...p.skills, languages:e.target.value}}))} placeholder="English, Hindi..." /></div>);
+                if(s === 'extras') return (<div><div className="bg-white p-4 rounded-xl border border-slate-200 mb-4"><h3 className="font-bold text-sm text-slate-700 mb-3">Certifications</h3>{data.certifications.map((cert, i) => (<div key={i} className="flex gap-2 mb-2 items-center"><input className="flex-1 h-10 border rounded-lg px-3 text-sm" placeholder="Name & Year" value={cert.name} onChange={e=>updateList('certifications',i,'name',e.target.value)} /><button onClick={()=>remList('certifications', i)} className="text-red-500 p-2"><Icon path={icons.trash} size={18}/></button></div>))}<button onClick={()=>addList('certifications', {name:''})} className="text-blue-600 text-sm font-bold">+ Add New</button></div><TextArea label="Hobbies" value={data.extras.hobbies} onChange={e=>setData(p=>({...p, extras:{...p.extras, hobbies:e.target.value}}))} rows={2} /><TextArea label="Volunteering" value={data.extras.volunteering} onChange={e=>setData(p=>({...p, extras:{...p.extras, volunteering:e.target.value}}))} rows={2} /><div className="bg-white p-4 rounded-xl border border-slate-200 mt-4"><TextArea label="Declaration" value={data.extras.declaration} onChange={e=>setData(p=>({...p, extras:{...p.extras, declaration:e.target.value}}))} rows={2} placeholder="I hereby declare..." /><div className="grid grid-cols-2 gap-3 mt-2"><Input label="Date" value={data.extras.date} onChange={e=>setData(p=>({...p, extras:{...p.extras, date:e.target.value}}))} type="date" /><Input label="Place" value={data.extras.place} onChange={e=>setData(p=>({...p, extras:{...p.extras, place:e.target.value}}))} /></div></div></div>);
+                if(s === 'references') return (<div>{data.references.map((ref, i) => (<div key={i} className="bg-white p-4 pt-12 rounded-xl border border-slate-200 shadow-sm mb-4 relative"><button onClick={()=>remList('references', i)} className="absolute top-2 right-2 text-white bg-red-400 hover:bg-red-500 p-1.5 rounded-full z-10 btn-press border border-red-100"><Icon path={icons.trash} size={14}/></button><Input label="Name" value={ref.name} onChange={e=>updateList('references',i,'name',e.target.value)} /><Input label="Role" value={ref.role} onChange={e=>updateList('references',i,'role',e.target.value)} /><Input label="Company" value={ref.company} onChange={e=>updateList('references',i,'company',e.target.value)} /><Input label="Contact" value={ref.contact} onChange={e=>updateList('references',i,'contact',e.target.value)} /></div>))}<AddCard onClick={()=>addList('references', {name:'', role:'', company:'', contact:''})} label="Add Reference" /></div>);
+                return <TextArea label="Summary" value={data.summary} onChange={e=>setData(p=>({...p, summary:e.target.value}))} rows={8} />;
+            };
+
+            const Preview = () => {
+                const { template: t, color: c } = theme;
+                const style = { color: c };
+                const bgStyle = { backgroundColor: c };
+                const borderStyle = { borderColor: c };
+
+                if(t === 'creative') return (<div className="w-full h-full bg-white flex text-xs text-slate-800"><div className="w-[35%] p-4 text-white space-y-4 shrink-0" style={bgStyle}><div className="text-center">{data.personal.photo && <img src={data.personal.photo} className="w-20 h-20 rounded-full mx-auto mb-2 border-2 border-white object-cover" />}<div className="font-bold text-lg uppercase leading-tight break-words">{data.personal.fullName}</div><div className="opacity-90">{data.personal.jobTitle}</div></div><div className="space-y-2 text-[10px]">{data.personal.phone && <div>📞 {data.personal.phone}</div>}{data.personal.email && <div className="break-all">✉️ {data.personal.email}</div>}{data.personal.city && <div>📍 {data.personal.city}</div>}{data.personal.dob && <div>🎂 {data.personal.dob}</div>}</div><div className="pt-2 border-t border-white/30"><div className="font-bold mb-1">SKILLS</div><div className="text-[10px] opacity-90">{data.skills.technical}</div></div></div><div className="w-[65%] p-4 space-y-4">{data.summary && <div><div className="font-bold uppercase border-b mb-1" style={borderStyle}>Profile</div><p className="text-justify">{data.summary}</p></div>}{data.experience.length>0 && <div><div className="font-bold uppercase border-b mb-2" style={borderStyle}>Experience</div>{data.experience.map((e,i)=><div key={i} className="mb-2"><div className="font-bold flex justify-between"><span>{e.title}</span><span className="text-slate-400 font-normal">{e.start}</span></div><div className="text-[10px] text-slate-500 italic">{e.company}, {e.location}</div><p className="text-[10px]">{e.desc}</p></div>)}</div>}{data.education.length>0 && <div><div className="font-bold uppercase border-b mb-2" style={borderStyle}>Education</div>{data.education.map((e,i)=><div key={i} className="mb-1"><div className="font-bold">{e.degree} in {e.stream}</div><div className="text-[10px]">{e.school}, {e.board}</div><div className="text-[10px] text-slate-400">{e.year} • {e.grade}</div></div>)}</div>}{data.extras.declaration && <div className="mt-6 pt-2 border-t text-[10px] text-center italic text-slate-500">{data.extras.declaration}<br/>{data.extras.date} {data.extras.place}</div>}</div></div>);
+                return (<div className="w-full h-full bg-white p-6 text-xs text-slate-900"><div className="border-b pb-4 mb-4 flex justify-between items-center" style={borderStyle}><div><h1 className="text-2xl font-bold uppercase tracking-wide" style={style}>{data.personal.fullName || 'Name'}</h1><div className="text-sm font-medium">{data.personal.jobTitle}</div><div className="flex flex-wrap gap-2 text-[10px] mt-1 text-slate-500"><span>{data.personal.phone}</span>|<span>{data.personal.email}</span>|<span>{data.personal.city}</span></div></div>{data.personal.photo && <img src={data.personal.photo} className="w-16 h-16 rounded-md object-cover border" style={borderStyle} />}</div>{data.summary && <div className="mb-4"><div className="font-bold uppercase mb-1" style={style}>Summary</div><p className="text-justify">{data.summary}</p></div>}{data.experience.length>0 && <div className="mb-4"><div className="font-bold uppercase mb-2 border-b pb-1" style={{...style, ...borderStyle}}>Experience</div>{data.experience.map((e,i)=><div key={i} className="mb-3"><div className="flex justify-between font-bold"><span>{e.title}</span><span className="text-slate-400 font-normal">{e.start} - {e.end}</span></div><div className="text-slate-600 italic mb-1">{e.company} | {e.location}</div><div className="whitespace-pre-line">{e.desc}</div></div>)}</div>}<div className="grid grid-cols-2 gap-4">{data.education.length>0 && <div><div className="font-bold uppercase mb-2 border-b pb-1" style={{...style, ...borderStyle}}>Education</div>{data.education.map((e,i)=><div key={i} className="mb-2"><div className="font-bold">{e.degree}</div><div className="text-[10px]">{e.school}</div><div className="text-[10px] text-slate-400">{e.year}</div></div>)}</div>}{(data.skills.technical || data.skills.soft) && <div><div className="font-bold uppercase mb-2 border-b pb-1" style={{...style, ...borderStyle}}>Skills</div><div>{data.skills.technical}</div><div className="mt-2">{data.skills.soft}</div></div>}</div>{data.references.length>0 && <div className="mt-4"><div className="font-bold uppercase mb-2 border-b pb-1" style={{...style, ...borderStyle}}>References</div>{data.references.map((r,i)=><div key={i} className="text-[10px]">{r.name} - {r.company} ({r.contact})</div>)}</div>}{data.extras.declaration && <div className="mt-6 text-center text-[10px] italic text-slate-500">{data.extras.declaration}<br/>{data.extras.place} {data.extras.date}</div>}</div>);
+            };
+
+            return (
+                <div className="h-full flex flex-col bg-slate-50">
+                    <nav className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 z-50 shadow-sm">
+                        <div className="flex items-center gap-2 select-none">
+                            <div className="bg-blue-600 text-white p-1.5 rounded-lg shadow-sm"><Icon path={icons.file} size={20}/></div>
+                            <div className="flex items-baseline gap-1">
+                                <span className="font-extrabold text-2xl text-slate-800 tracking-tighter">CV</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider translate-y-[-2px]">by</span>
+                                <span className="shiny-text text-sm md:text-base translate-y-[-1px]">Santanu</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-2"><button onClick={()=>setShowPreview(true)} className="md:hidden w-9 h-9 flex items-center justify-center bg-slate-100 rounded-full text-slate-600 active:scale-95 border border-slate-200"><Icon path={icons.eye} size={20}/></button><Button onClick={activateAI} variant="magic" className="!h-9 !px-3 !text-xs gap-1 !min-w-0" icon={<Icon path={icons.magic} size={14}/>} isLoading={isAiLoading} iconPosition="left">{isAiLoading?'...':'AI Magic'}</Button></div>
+                    </nav>
+
+                    <div className="flex-1 relative overflow-hidden flex flex-col md:flex-row">
+                        <div className="flex-1 flex flex-col h-full w-full md:max-w-md bg-white z-10">
+                            <div className="h-12 border-b border-slate-100 flex items-center gap-2 overflow-x-auto px-4 hide-scroll shrink-0">
+                                {STEPS.map((s,i) => (
+                                    <button key={s.id} onClick={()=>setActiveStep(i)} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activeStep===i?'bg-slate-800 text-white':'bg-slate-100 text-slate-500'}`}>
+                                        <Icon path={s.icon} size={14} /> {s.title}
+                                    </button>
+                                ))}
+                            </div>
+                            <div ref={scrollRef} className="flex-1 touch-scroll p-5 pb-32">
+                                <div className="mb-4">
+                                    <h2 className="text-xl font-bold text-slate-800">{STEPS[activeStep].title}</h2>
+                                    <p className="text-xs text-slate-400">Fill details below</p>
+                                </div>
+                                {renderStep()}
+                            </div>
+                            <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 p-4 px-6 flex justify-between items-center z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+                                <Button variant="secondary" onClick={()=>setActiveStep(Math.max(0,activeStep-1))} disabled={activeStep===0} icon={<Icon path={icons.left} size={20}/>} iconPosition="left">Back</Button>
+                                {activeStep===STEPS.length-1 ? 
+                                    <Button variant="primary" onClick={savePDF} icon={<Icon path={isSaving ? icons.loader : icons.download} size={20}/>} isLoading={isSaving} iconPosition="left">{isSaving ? 'Saving...' : 'Save PDF'}</Button> : 
+                                    <Button variant="primary" onClick={()=>setActiveStep(Math.min(STEPS.length-1,activeStep+1))} icon={<Icon path={icons.right} size={20}/>} iconPosition="right">Next</Button>
+                                }
+                            </div>
+                        </div>
+
+                        <div className={`fixed inset-0 z-50 bg-slate-100 transition-transform duration-300 flex flex-col md:static md:flex-1 md:translate-y-0 ${showPreview?'translate-y-0':'translate-y-full'}`}>
+                            <div className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 md:hidden"><span className="font-bold text-slate-700">Preview</span><button onClick={()=>setShowPreview(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-full text-slate-500"><Icon path={icons.x} size={18}/></button></div>
+                            <div className="flex-1 touch-scroll p-4 flex justify-center bg-slate-200/50">
+                                <div id="resume-preview" className="w-full max-w-[210mm] min-h-[297mm] bg-white shadow-xl origin-top transform scale-100 md:scale-90">
+                                    <Preview />
+                                </div>
+                            </div>
+                            <button onClick={savePDF} className="md:hidden absolute bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-xl flex items-center justify-center fab-btn active:scale-90 transition-transform" disabled={isSaving}><Icon path={isSaving ? icons.loader : icons.download} size={24}/></button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<UltraResumeAI />);
+    </script>
+</body>
+</html>
